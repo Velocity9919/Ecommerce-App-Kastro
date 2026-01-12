@@ -4,6 +4,9 @@ pipeline {
 	    jdk 'jdk 17'
         maven "maven 3.9.12"
     }
+	environment {
+        SCANNER_HOME=tool 'sonar-scanner'
+	
     stages {
         stage("Cleanup Workspace"){
             steps{
@@ -28,5 +31,25 @@ pipeline {
                 sh "mvn test"
             }
         }
+		stage('File System Scan') {
+            steps {
+                sh "trivy fs --format table -o trivy-fs-report.html ."
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('sonar-server') {
+                    sh '''
+                    $SCANNER_HOME/bin/sonar-scanner \
+                    -Dsonar.projectName=ECommerce \
+                    -Dsonar.projectKey=ECommerce \
+                    -Dsonar.java.binaries=target/classes
+                    '''
+                }
+            }
+        }
     }
 }
+
+JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
